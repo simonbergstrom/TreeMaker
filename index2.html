@@ -1,8 +1,10 @@
 <html>
-	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min.js"></script>
-	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/Colors.js/1.2.2/colors.min.js"></script>
-	<!--script type="text/javascript" src="http://www.nihilogic.dk/labs/canvas2image/canvas2image.js"></script-->
+	<!--script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min.js"></script>
+	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/Colors.js/1.2.2/colors.min.js"></script-->
+	<script src="vendor/jquery-1.11.1.min.js"></script>
 	<script src="vendor/three.js/build/three.js"></script>
+	<script src="vendor/TrackBallControls.js"></script>
+	<script src="vendor/OrbitControls.js"></script>
 	<script src="Lsystem.js"></script>
 	<head>
 		<style>
@@ -27,4 +29,24 @@
 	</body>
 
 	<script src="main.js"></script>
+
+	 <script type="x-shader/x-vertex" id="vertexShader">
+  		// Your GLSL vertex shader here...
+  		uniform vec3 color;
+		attribute float size;
+
+		varying vec3 vColor;  // 'varying' vars are passed to the fragment shader
+
+		void main() {
+		  vColor = color;   // pass the color to the fragment shader
+		  gl_PointSize = size;
+		}
+
+	</script>
+
+	<script type="x-shader/x-fragment" id="fragmentShader">
+	  	// Your GLSL fragment shader here...
+	  	void main() {
+  			gl_FragColor = vec4(vColor, 0.5);  // adjust the alpha
+	</script>
 </html>

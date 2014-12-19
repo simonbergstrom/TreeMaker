@@ -11,6 +11,8 @@ function Params() {
   this.scaleRandomness= 0;
   this.constantWidth= true;
   this.deltarota =30;
+  this.treeWidth = 40;
+  this.treeDecrease = 2;
 }
 function Colors() {
   this.background = "#000000";
@@ -26,7 +28,7 @@ function Rules()  {
 
 var rules = new Rules();
 var params = new Params();
-var colors = new Colors();
+//var colors = new Colors();
 
 function GetAxiomTree() {
   var Waxiom = rules.axiom;
@@ -135,11 +137,10 @@ function DrawTheTree(geom, x_init, y_init, z_init){
 // Some predefined rules for the L-system
 function setRules0(){
   rules.axiom = "F";
-  rules.mainRule = "F-F[-F+F[LLLLLLLL]]++F[+F[LLLLLLLL]]--F[+F[LLLLLLLL]]";
-  params.iterations =3;
-  params.angle = 0;
-  params.theta = 30;
-  params.scale = 6;
+  rules.mainRule = "F[--F++][F]";
+  params.iterations =1;
+  params.theta = 12;
+  params.scale = 16;
 }
 function setRules1(){
   rules.axiom = "F";
@@ -193,4 +194,108 @@ function setRules7(){
   params.iterations = 5;
   params.theta = 25;
   params.scale = 10;
+}
+
+// The draw function for the Tree which takes a empty geometry and  
+// Return cylindermesh!
+function DrawTheTree2(geom, x_init, y_init, z_init){
+  var geometry = geom;
+  var Wrule = GetAxiomTree();
+  var n = Wrule.length;
+  var stackX = []; var stackY = [];  var stackZ = []; var stackA = [];
+  var stackV = []; var stackAxis = [];
+
+  var theta = params.theta * Math.PI / 180;
+  var scale = params.scale;
+  var angle = params.angle * Math.PI / 180;
+
+  var x0 = x_init;    var y0 = y_init;   var z0 = z_init ;
+  var x;    var y;    var z;
+  var rota = 0, rota2 = 0,
+  deltarota = 18 * Math.PI/180;
+  var newbranch = false;
+  var axis_x = new THREE.Vector3( 1, 0, 0 );
+  var axis_y = new THREE.Vector3( 0, 1, 0 );
+  var axis_z = new THREE.Vector3( 0, 0, 1 );
+  var zero = new THREE.Vector3( 0, 0, 0 );
+  var axis_delta = new THREE.Vector3(),
+  prev_startpoint = new THREE.Vector3();
+
+
+  // NEW
+  var decrease  = params.treeDecrease;
+  var treeWidth = params.treeWidth;
+  // END
+
+
+  var startpoint = new THREE.Vector3(x0,y0,z0),
+  endpoint = new THREE.Vector3();
+  var bush_mark;
+  var vector_delta = new THREE.Vector3(scale, scale, 0);
+  var cylindermesh = new THREE.Object3D();
+
+  for (var j=0; j<n; j++){
+
+    treeWidth = treeWidth-decrease;
+    var a = Wrule[j];
+    if (a == "+"){angle -= theta;}
+    if (a == "-"){angle += theta;}
+    if (a == "F"){
+
+      var a = vector_delta.clone().applyAxisAngle( axis_y, angle );
+      endpoint.addVectors(startpoint, a);
+
+      cylindermesh.add(cylinderMesh(startpoint,endpoint,treeWidth));
+
+      prev_startpoint.copy(startpoint);
+      startpoint.copy(endpoint);
+
+      axis_delta = new THREE.Vector3().copy(a).normalize();
+      rota += deltarota;
+    }
+    if (a == "L"){
+      endpoint.copy(startpoint);
+      endpoint.add(new THREE.Vector3(0, scale*1.5, 0));
+      var vector_delta2 = new THREE.Vector3().subVectors(endpoint, startpoint);
+      vector_delta2.applyAxisAngle( axis_delta, rota2 );
+      endpoint.addVectors(startpoint, vector_delta2);
+
+      cylindermesh.add(cylinderMesh(startpoint,endpoint,treeWidth));
+
+      rota2 += 45 * Math.PI/180;
+    }
+    if (a == "%"){
+
+    }
+    if (a == "["){
+      stackV.push(new THREE.Vector3(startpoint.x, startpoint.y, startpoint.z));
+      stackA[stackA.length] = angle;
+    }
+    if (a == "]"){
+      var point = stackV.pop();
+      startpoint.copy(new THREE.Vector3(point.x, point.y, point.z));
+      angle = stackA.pop();
+    }
+    bush_mark = a;
+  }
+  return cylindermesh;
+}
+
+// Convert vector between point X and Y to a cylinder...
+function cylinderMesh(pointX, pointY,treeWidth) {
+    var direction = new THREE.Vector3().subVectors(pointY, pointX);
+    var orientation = new THREE.Matrix4();
+    orientation.lookAt(pointX, pointY, new THREE.Object3D().up);
+    orientation.multiply(new THREE.Matrix4(1, 0, 0, 0,
+                                           0, 0, 1, 0,
+                                           0, -1, 0, 0,
+                                           0, 0, 0, 1));
+    var edgeGeometry = new THREE.CylinderGeometry(0.5, 0.5, direction.length(), 8, 1);
+    var edge = new THREE.Mesh(edgeGeometry);
+    edge.applyMatrix(orientation);
+    // position based on midpoints - there may be a better solution than this
+    edge.position.x = (pointY.x + pointX.x) / 2;
+    edge.position.y = (pointY.y + pointX.y) / 2;
+    edge.position.z = (pointY.z + pointX.z) / 2;
+    return edge;
 }
